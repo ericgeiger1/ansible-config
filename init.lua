@@ -1,82 +1,66 @@
--- 1. SET LEADER KEY (CRITICAL: Must be at the very top)
+-- 1. Leader Key
 vim.g.mapleader = " "
-vim.g.maplocalleader = " "
 
--- 2. BOOTSTRAP: Install Lazy.nvim if missing
+-- 2. Bootstrap Lazy.nvim (The Plugin Manager)
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
-  vim.fn.system({
-    "git",
-    "clone",
-    "--filter=blob:none",
-    "https://github.com/folke/lazy.nvim.git",
-    "--branch=stable",
-    lazypath,
-  })
+  vim.fn.system({ "git", "clone", "--filter=blob:none", "https://github.com/folke/lazy.nvim.git", "--branch=stable", lazypath })
 end
 vim.opt.rtp:prepend(lazypath)
 
--- 3. PLUGINS
+-- 3. Plugins setup
 require("lazy").setup({
   { "catppuccin/nvim", name = "catppuccin", priority = 1000 },
   "nvim-tree/nvim-tree.lua",
+  "nvim-tree/nvim-web-devicons",
   "nvim-lualine/lualine.nvim",
   "nvim-treesitter/nvim-treesitter",
   "nvim-telescope/telescope.nvim",
   "nvim-lua/plenary.nvim",
-  "lewis6991/gitsigns.nvim",      -- Shows changes in the "Sign Column"
-  "windwp/nvim-autopairs",        -- The {} () auto-closer
-  "numToStr/Comment.nvim",        -- Use 'gcc' to comment/uncomment lines
-  
-  -- LSP & Mason
+  "lewis6991/gitsigns.nvim",
+  "windwp/nvim-autopairs",
+  "numToStr/Comment.nvim",
   {
     "williamboman/mason.nvim",
-    dependencies = {
-      "williamboman/mason-lspconfig.nvim",
-      "neovim/nvim-lspconfig",
-    },
+    dependencies = { "williamboman/mason-lspconfig.nvim", "neovim/nvim-lspconfig" },
     config = function()
       require("mason").setup()
-      require("mason-lspconfig").setup({
-        ensure_installed = { "clangd", "ansiblels", "lua_ls" }
-      })
-      
-      -- Native 0.12 LSP
-      vim.lsp.config('clangd', {})
-      vim.lsp.config('ansiblels', {})
-      vim.lsp.config('lua_ls', {})
-      
-      vim.lsp.enable('clangd')
-      vim.lsp.enable('ansiblels')
-      vim.lsp.enable('lua_ls')
+      require("mason-lspconfig").setup({ ensure_installed = { "clangd", "ansiblels", "lua_ls" } })
     end
   },
 })
 
--- 4. BASIC SETTINGS & UI
+-- 4. Global Settings
+vim.opt.termguicolors = true
 vim.cmd.colorscheme "catppuccin"
 vim.opt.number = true
 vim.opt.relativenumber = true
-vim.opt.signcolumn = "yes"        -- Keep space for error/warning icons
-vim.opt.cursorline = true         -- Highlight the current line
-vim.opt.shiftwidth = 4            -- Standard C++ indentation
-vim.opt.tabstop = 4
-vim.opt.clipboard = "unnamedplus" -- Sync with Windows clipboard (via win32yank)
+vim.opt.clipboard = "unnamedplus"
 
--- Initialize Plugin Settings
-require("nvim-tree").setup()
-require("gitsigns").setup()
-require("Comment").setup()
-require("nvim-autopairs").setup({
-    check_ts = true,
-    fast_wrap = {},               -- Allows wrapping words with Alt + e
+-- 5. Plugin Initialization (Ordering is key!)
+-- Setup icons FIRST
+require('nvim-web-devicons').setup({
+  default = true,
 })
 
--- 5. KEYBINDINGS
-local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = "Find Files" })
-vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = "Search Text" })
-vim.keymap.set('n', '<C-n>', ':NvimTreeToggle<CR>', { desc = "Toggle Sidebar" })
+-- Setup nvim-tree SECOND
+require("nvim-tree").setup({
+  renderer = {
+    icons = {
+      web_devicons = {
+        file = { enable = true, color = true },
+      },
+    },
+  },
+})
 
--- F5: Save, Compile, and Run C++
-vim.keymap.set('n', '<F5>', ':w | !g++ % -o %:r && ./%:r<CR>', { desc = "Compile & Run" })
+-- Setup others
+require("gitsigns").setup()
+require("Comment").setup()
+require("nvim-autopairs").setup()
+
+-- 6. Keybindings
+local builtin = require('telescope.builtin')
+vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
+vim.keymap.set('n', '<C-n>', ':NvimTreeToggle<CR>', {})
+vim.keymap.set('n', '<F5>', ':w | !g++ % -o %:r && ./%:r; echo; read -p "Press Enter to return to Neovim..."<CR>', { desc = "Compile & Run" })

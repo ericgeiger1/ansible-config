@@ -32,7 +32,15 @@ require("lazy").setup({
     dependencies = { "williamboman/mason-lspconfig.nvim", "neovim/nvim-lspconfig" },
     config = function()
       require("mason").setup()
-      require("mason-lspconfig").setup({ ensure_installed = { "clangd", "ansiblels", "lua_ls", "gopls" } })
+      require("mason-lspconfig").setup({ 
+        ensure_installed = { "clangd", "ansiblels", "lua_ls", "gopls" } 
+      })
+
+      -- This is the "New Native API" way to enable servers
+      vim.lsp.enable('clangd')
+      vim.lsp.enable('lua_ls')
+      vim.lsp.enable('gopls')
+      vim.lsp.enable('ansiblels')
     end
   },
 
@@ -47,22 +55,18 @@ require("lazy").setup({
       local dap = require("dap")
       local dapui = require("dapui")
 
-      -- Setup the Visual Interface
       dapui.setup()
       
-      -- Automatically open/close the UI when debugging starts/stops
       dap.listeners.after.event_initialized["dapui_config"] = function() dapui.open() end
       dap.listeners.before.event_terminated["dapui_config"] = function() dapui.close() end
       dap.listeners.before.event_exited["dapui_config"] = function() dapui.close() end
 
-      -- Tell Neovim where Mason put cpptools
       dap.adapters.cppdbg = {
         id = 'cppdbg',
         type = 'executable',
         command = vim.fn.stdpath("data") .. '/mason/bin/OpenDebugAD7',
       }
 
-      -- Configure how C++ programs launch
       dap.configurations.cpp = {
         {
           name = "Launch executable",
@@ -72,13 +76,9 @@ require("lazy").setup({
             return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
           end,
           cwd = '${workspaceFolder}',
-          stopAtEntry = true, -- Stops at main() so you can step through line-by-line
+          stopAtEntry = true,
           setupCommands = {  
-            { 
-              text = '-enable-pretty-printing', 
-              description =  'enable pretty printing', 
-              ignoreFailures = false 
-            },
+            { text = '-enable-pretty-printing', description =  'enable pretty printing', ignoreFailures = false },
           },
         },
       }
@@ -97,9 +97,24 @@ vim.opt.termguicolors = true
 vim.cmd.colorscheme "catppuccin"
 vim.opt.number = true
 vim.opt.relativenumber = true
-
--- Activate win32yank for WSL to Windows clipboard syncing
 vim.opt.clipboard = "unnamedplus"
+
+-- Diagnostic / Error Signs (E and W)
+vim.diagnostic.config({
+  virtual_text = true, 
+  signs = true,        
+  underline = true,
+  update_in_insert = false,
+  severity_sort = true,
+})
+
+local signs = { Error = "E", Warn = "W", Hint = "H", Info = "I" }
+for type, icon in pairs(signs) do
+  local hl = "DiagnosticSign" .. type
+  vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+end
+
+-- WSL Clipboard Fix
 vim.g.clipboard = {
   name = 'win32yank-wsl',
   copy = {
@@ -113,17 +128,13 @@ vim.g.clipboard = {
   cache_enabled = 0,
 }
 
--- 5. Plugin Initialization (Ordering is key!)
+-- 5. Plugin Initialization
 require('nvim-web-devicons').setup({ default = true })
-
 require("nvim-tree").setup({
   renderer = {
-    icons = {
-      web_devicons = { file = { enable = true, color = true } },
-    },
+    icons = { web_devicons = { file = { enable = true, color = true } } },
   },
 })
-
 require("gitsigns").setup()
 require("Comment").setup()
 require("nvim-autopairs").setup()
@@ -133,20 +144,33 @@ local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
 vim.keymap.set('n', '<C-n>', ':NvimTreeToggle<CR>', {})
 
--- F6: Save, Compile (with debug symbols), and Run in a REAL interactive terminal
+-- Diagnostic Navigation (Jump to Errors)
+vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = 'Go to prev error' })
+vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = 'Go to next error' })
+vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show error detail' })
+
+-- F6: Save, Compile (with debug symbols), and Run
 vim.keymap.set('n', '<F6>', function()
-  vim.cmd("w") -- Save the file
-  local file = vim.fn.expand("%:p") -- Full path to test.cpp
-  local output = vim.fn.expand("%:p:r") -- Full path to executable 'test'
+  vim.cmd("w") 
+  local file = vim.fn.expand("%:p") 
+  local output = vim.fn.expand("%:p:r") 
   
-  -- Added the -g flag here so it is ALWAYS ready to be debugged!
   local compile_cmd = string.format("g++ -g %s -o %s", file, output)
   vim.fn.system(compile_cmd)
   
   if vim.v.shell_error == 0 then
-    vim.cmd("split | term " .. output) -- Open terminal in a split
-    vim.cmd("startinsert") -- Put you in 'Type' mode immediately
+    vim.cmd("split | term " .. output) 
+    vim.cmd("startinsert") 
   else
-    print("Compilation Failed!")
+    -- If compilation fails, open the Quickfix window to show why
+    vim.cmd("copen")
+    print("Compilation Failed! Check errors above.")
   end
 end, { desc = "Interactive Compile & Run" })
+
+-- 7. Auto-commands
+-- Open Quickfix window automatically on errors
+vim.api.nvim_create_autocmd("QuickFixCmdPost", {
+    pattern = "[^l]*",
+    command = "cwindow",
+})

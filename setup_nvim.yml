@@ -2,7 +2,7 @@
 - name: Deploy Ultimate Cyber-Dev Environment
   hosts: localhost
   connection: local
-  # Removed global 'become: yes' to ensure user directories are owned by you, not root
+  # Explicitly removed global 'become' so user folders stay owned by the user
   
   tasks:
     - name: Install System Dependencies
@@ -21,7 +21,7 @@
           - fd-find
           - fuse
           - socat
-          - golang   # <--- Added Go Compiler here
+          - golang
         state: present
 
     - name: Install Tree-sitter CLI
@@ -48,7 +48,7 @@
       loop:
         - "/home/{{ ansible_user_id }}/.config"
         - "/home/{{ ansible_user_id }}/.config/nvim"
-        - "/home/{{ ansible_user_id }}/.local/share/nvim/lazy" # <--- Critical Data Path
+        - "/home/{{ ansible_user_id }}/.local/share/nvim/lazy" 
         - "/home/{{ ansible_user_id }}/.1password"
 
     - name: Bootstrap Lazy.nvim Manager

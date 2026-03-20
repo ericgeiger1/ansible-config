@@ -20,6 +20,13 @@ require("lazy").setup({
   "lewis6991/gitsigns.nvim",
   "windwp/nvim-autopairs",
   "numToStr/Comment.nvim",
+
+{
+  'akinsho/toggleterm.nvim', 
+    version = "*", 
+    config = true
+},
+
   {
     "williamboman/mason.nvim",
     dependencies = { "williamboman/mason-lspconfig.nvim", "neovim/nvim-lspconfig" },
@@ -63,4 +70,21 @@ require("nvim-autopairs").setup()
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
 vim.keymap.set('n', '<C-n>', ':NvimTreeToggle<CR>', {})
-vim.keymap.set('n', '<F5>', ':w | !g++ % -o %:r && ./%:r; echo; read -p "Press Enter to return to Neovim..."<CR>', { desc = "Compile & Run" })
+
+-- F5: Save, Compile, and Run in a REAL interactive terminal
+vim.keymap.set('n', '<F5>', function()
+  vim.cmd("w") -- Save the file
+  local file = vim.fn.expand("%:p") -- Full path to test.cpp
+  local output = vim.fn.expand("%:p:r") -- Full path to executable 'test'
+  
+  -- Compile and then open a terminal to run it
+  local compile_cmd = string.format("g++ %s -o %s", file, output)
+  vim.fn.system(compile_cmd)
+  
+  if vim.v.shell_error == 0 then
+    vim.cmd("split | term " .. output) -- Open terminal in a split
+    vim.cmd("startinsert") -- Put you in 'Type' mode immediately
+  else
+    print("Compilation Failed!")
+  end
+end, { desc = "Interactive Compile & Run" })

@@ -91,3 +91,12 @@
         EXEC:"/usr/local/bin/npiperelay.exe -ep -s //./pipe/1password-ssh-agent",nofork &
       async: 10
       poll: 0
+
+    - name: Install Go Compiler (Required for gopls)
+      become: yes
+      dnf:
+        name: golang
+        state: present
+
+
+

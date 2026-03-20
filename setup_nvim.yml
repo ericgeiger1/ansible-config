@@ -38,26 +38,29 @@
       file:
         path: "{{ item }}"
         state: directory
-        owner: cloud-user
-        group: cloud-user
+        owner: "{{ ansible_user_id }}" 
+        group: "{{ ansible_user_id }}"
         mode: '0755'
       loop:
-        - "/home/cloud-user/.config/nvim"
-        - "/home/cloud-user/.1password"
+        - "/home/{{ ansible_user_id }}/.config"
+        - "/home/{{ ansible_user_id }}/.config/nvim"
+        - "/home/{{ ansible_user_id }}/.1password"
 
     - name: Deploy init.lua (As Symlink for GitHub Sync)
       file:
-        src: "/home/cloud-user/ansible-config/init.lua"
-        dest: "/home/cloud-user/.config/nvim/init.lua"
+        src: "/home/{{ ansible_user_id }}/ansible-config/init.lua"
+        dest: "/home/{{ ansible_user_id }}/.config/nvim/init.lua"
         state: link
         force: yes
+        follow: no
 
     - name: Deploy lazy-lock.json (As Symlink)
       file:
-        src: "/home/cloud-user/ansible-config/lazy-lock.json"
-        dest: "/home/cloud-user/.config/nvim/lazy-lock.json"
+        src: "/home/{{ ansible_user_id }}/ansible-config/lazy-lock.json"
+        dest: "/home/{{ ansible_user_id }}/.config/nvim/lazy-lock.json"
         state: link
         force: yes
+        follow: no
 
     - name: Download win32yank for WSL Clipboard
       get_url:
@@ -84,13 +87,6 @@
         mv /tmp/npiperelay_tmp/npiperelay.exe /usr/local/bin/
       args:
         creates: /usr/local/bin/npiperelay.exe
-
-    - name: Start 1Password SSH Relay
-      shell: |
-        nohup socat UNIX-LISTEN:/home/cloud-user/.1password/agent.sock,fork \
-        EXEC:"/usr/local/bin/npiperelay.exe -ep -s //./pipe/1password-ssh-agent",nofork &
-      async: 10
-      poll: 0
 
     - name: Install Go Compiler (Required for gopls)
       become: yes

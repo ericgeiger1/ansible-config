@@ -1,0 +1,1 @@
+ansible-playbook -i "localhost," -c local setup_nvim.yml --ask-become-pass

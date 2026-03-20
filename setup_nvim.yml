@@ -2,10 +2,11 @@
 - name: Deploy Ultimate Cyber-Dev Environment
   hosts: localhost
   connection: local
-  become: yes
-
+  # Removed global 'become: yes' to ensure user directories are owned by you, not root
+  
   tasks:
     - name: Install System Dependencies
+      become: yes
       dnf:
         name:
           - git
@@ -20,14 +21,17 @@
           - fd-find
           - fuse
           - socat
+          - golang   # <--- Added Go Compiler here
         state: present
 
     - name: Install Tree-sitter CLI
+      become: yes
       shell: npm install -g tree-sitter-cli
       args:
         creates: /usr/local/bin/tree-sitter
 
     - name: Download Neovim Nightly
+      become: yes
       get_url:
         url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.appimage
         dest: /usr/bin/nvim
@@ -38,33 +42,44 @@
       file:
         path: "{{ item }}"
         state: directory
-        owner: cloud-user
-        group: cloud-user
+        owner: "{{ ansible_user_id }}" 
+        group: "{{ ansible_user_id }}"
         mode: '0755'
       loop:
-        - "/home/cloud-user/.config/nvim"
-        - "/home/cloud-user/.1password"
+        - "/home/{{ ansible_user_id }}/.config"
+        - "/home/{{ ansible_user_id }}/.config/nvim"
+        - "/home/{{ ansible_user_id }}/.local/share/nvim/lazy" # <--- Critical Data Path
+        - "/home/{{ ansible_user_id }}/.1password"
 
-    - name: Deploy init.lua (As Symlink for GitHub Sync)
+    - name: Bootstrap Lazy.nvim Manager
+      git:
+        repo: 'https://github.com/folke/lazy.nvim.git'
+        dest: "/home/{{ ansible_user_id }}/.local/share/nvim/lazy/lazy.nvim"
+        version: stable
+
+    - name: Deploy init.lua (Symlink)
       file:
-        src: "/home/cloud-user/ansible-config/init.lua"
-        dest: "/home/cloud-user/.config/nvim/init.lua"
+        src: "/home/{{ ansible_user_id }}/ansible-config/init.lua"
+        dest: "/home/{{ ansible_user_id }}/.config/nvim/init.lua"
         state: link
         force: yes
+        follow: no
 
-    - name: Deploy lazy-lock.json (As Symlink)
+    - name: Deploy lazy-lock.json (Symlink)
       file:
-        src: "/home/cloud-user/ansible-config/lazy-lock.json"
-        dest: "/home/cloud-user/.config/nvim/lazy-lock.json"
+        src: "/home/{{ ansible_user_id }}/ansible-config/lazy-lock.json"
+        dest: "/home/{{ ansible_user_id }}/.config/nvim/lazy-lock.json"
         state: link
         force: yes
+        follow: no
 
-    - name: Download win32yank for WSL Clipboard
+    - name: Install win32yank for WSL Clipboard
       get_url:
         url: https://github.com/equalsraf/win32yank/releases/download/v0.1.1/win32yank-x64.zip
         dest: /tmp/win32yank.zip
 
     - name: Unzip and Install win32yank
+      become: yes
       shell: |
         unzip -o /tmp/win32yank.zip -d /tmp/win32yank_tmp
         chmod +x /tmp/win32yank_tmp/win32yank.exe
@@ -78,25 +93,10 @@
         dest: /tmp/npiperelay.zip
 
     - name: Unzip and Install npiperelay
+      become: yes
       shell: |
         unzip -o /tmp/npiperelay.zip npiperelay.exe -d /tmp/npiperelay_tmp
         chmod +x /tmp/npiperelay_tmp/npiperelay.exe
         mv /tmp/npiperelay_tmp/npiperelay.exe /usr/local/bin/
       args:
         creates: /usr/local/bin/npiperelay.exe
-
-    - name: Start 1Password SSH Relay
-      shell: |
-        nohup socat UNIX-LISTEN:/home/cloud-user/.1password/agent.sock,fork \
-        EXEC:"/usr/local/bin/npiperelay.exe -ep -s //./pipe/1password-ssh-agent",nofork &
-      async: 10
-      poll: 0
-
-    - name: Install Go Compiler (Required for gopls)
-      become: yes
-      dnf:
-        name: golang
-        state: present
-
-
-

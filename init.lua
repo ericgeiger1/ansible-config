@@ -163,3 +163,6 @@ vim.api.nvim_create_autocmd("QuickFixCmdPost", {
     pattern = "[^l]*",
     command = "cwindow",
 })
+
+-- Move to end of line in Insert Mode with Ctrl+l
+vim.keymap.set('i', '<C-l>', '<Esc>A')

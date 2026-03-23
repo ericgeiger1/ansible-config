@@ -20,12 +20,66 @@ require("lazy").setup({
   "lewis6991/gitsigns.nvim",
   "windwp/nvim-autopairs",
   "numToStr/Comment.nvim",
+  "ThePrimeagen/vim-be-good",
 
   {
     'akinsho/toggleterm.nvim', 
     version = "*", 
     config = true
   },
+
+{
+  'nvim-lualine/lualine.nvim',
+  dependencies = { 'nvim-tree/nvim-web-devicons' },
+  config = function()
+    -- Define your custom cybersecurity-style colors
+    local my_colors = {
+      blue   = '#1904d4',
+      green  = '#01bd29',
+      purple = '#5f0057',
+      teal   = '#045658',
+      black  = '#1c1c1c',
+      white  = '#ffffff',
+      orange = '#ff5f00',
+    }
+
+   local my_theme = {
+  normal = {
+    a = { fg = my_colors.white, bg = my_colors.blue, gui = 'bold' },
+    b = { fg = my_colors.white, bg = my_colors.blue }, -- Changed to blue
+    c = { fg = my_colors.white, bg = my_colors.blue }, -- The "Whole Bar" color
+  },
+  insert = {
+    a = { fg = my_colors.white, bg = my_colors.green, gui = 'bold' },
+    b = { fg = my_colors.white, bg = my_colors.green },
+    c = { fg = my_colors.white, bg = my_colors.green },
+  },
+  visual = {
+    a = { fg = my_colors.white, bg = my_colors.purple, gui = 'bold' },
+    b = { fg = my_colors.white, bg = my_colors.purple },
+    c = { fg = my_colors.white, bg = my_colors.purple },
+  },
+  replace = { -- New mode added here
+    a = { fg = my_colors.white, bg = my_colors.orange, gui = 'bold' }, -- Vibrant orange
+    b = { fg = my_colors.white, bg = my_colors.orange },
+    c = { fg = my_colors.white, bg = my_colors.orange },
+  },
+  command = {
+    a = { fg = my_colors.white, bg = my_colors.teal, gui = 'bold' },
+    b = { fg = my_colors.white, bg = my_colors.teal },
+    c = { fg = my_colors.white, bg = my_colors.teal },
+  },
+}
+
+    require('lualine').setup({
+      options = {
+        theme = my_theme, -- This tells Lualine to use your colors above
+        section_separators = { left = '', right = '' },
+        component_separators = { left = '', right = '' },
+      }
+    })
+  end
+},
 
   {
     "williamboman/mason.nvim",
@@ -166,3 +220,6 @@ vim.api.nvim_create_autocmd("QuickFixCmdPost", {
 
 -- Move to end of line in Insert Mode with Ctrl+l
 vim.keymap.set('i', '<C-l>', '<Esc>A')
+
+-- If using lazy.nvim
+
